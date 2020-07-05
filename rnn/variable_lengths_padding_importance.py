@@ -3,30 +3,40 @@
 import numpy as np
 import random
 import datetime
-import sys
-from keras.models import Sequential
-from keras.layers import Dense, LSTM, GRU, Masking
-from keras.utils import np_utils
-from keras.preprocessing.sequence import pad_sequences
-from keras.callbacks import Callback
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, LSTM, GRU, Masking
+from tensorflow.keras import utils
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.callbacks import Callback
+
+##### Parameters
+
+n_iterations = 30
+n_epochs = 50
+
+eval_method = "loss"
+#eval_method = "accuracy"
+
+mask_value = np.finfo(np.float32).min
+
+#####
 
 np.set_printoptions(formatter={'float': '{: 0.3f}'.format}, suppress=True, linewidth=208)
 np.random.seed(7)
+
 alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 char_to_int = dict((c, i) for i, c in enumerate(alphabet))
 int_to_char = dict((i, c) for i, c in enumerate(alphabet))
 
-seq_length = 1
 dataX = []
 dataY = []
 for i in range(0, len(alphabet), 1):
-    seq_in = alphabet[i:i + seq_length]
-    seq_out = alphabet[(i + seq_length) % len(alphabet)]
+    seq_in = alphabet[i:i + 1]
+    seq_out = alphabet[(i + 1) % len(alphabet)]
     dataX.append([char_to_int[char] for char in seq_in])
     dataY.append(char_to_int[seq_out])
 
-mask_value = np.finfo(np.float32).min #-1.0
 data = dict()
 data["X"] = []
 data["y"] = []
@@ -34,7 +44,7 @@ for seq_len in range(1, len(alphabet)+1):
     for shift in range(len(alphabet)):
         roll = np.roll(dataX, shift, axis=0)
         X = roll[:seq_len].reshape(seq_len) / float(len(alphabet))
-        y = np_utils.to_categorical(roll[seq_len % len(alphabet)], len(alphabet))
+        y = utils.to_categorical(roll[seq_len % len(alphabet)], len(alphabet))
         data["X"].append(X)
         data["y"].append(y)
 
@@ -49,9 +59,6 @@ model.add(GRU(32))
 model.add(Dense(len(alphabet), activation="softmax"))
 model.compile(loss="categorical_crossentropy", optimizer="nadam", metrics=["accuracy"])
 print(model.summary())
-
-n_iterations = 30
-n_epochs = 50
 
 class EvaluationCallback(Callback):
     def __init__(self, metric):
@@ -81,8 +88,7 @@ def sample():
             y_tmp.append(y[i])
     return np.array(X_tmp), np.array(y_tmp)
 
-#evalCallback = EvaluationCallback("accuracy")
-evalCallback = EvaluationCallback("loss")
+evalCallback = EvaluationCallback(eval_method)
 
 def calc_importance():
     _, a = model.evaluate(X, y, batch_size=1, callbacks=[evalCallback], verbose=1)
