@@ -2,7 +2,7 @@
 #       and https://www.idiap.ch/~katharas/importance-sampling/ --> Not working for TF 2.2
 import numpy as np
 import random
-import time
+import datetime
 import sys
 from keras.models import Sequential
 from keras.layers import Dense, LSTM, GRU, Masking
@@ -54,11 +54,21 @@ n_iterations = 30
 n_epochs = 50
 
 class EvaluationCallback(Callback):
+    def __init__(self, metric):
+        if metric=="loss":
+            self.metric = "loss"
+        else:
+            self.metric = "accuracy"
+        print("===> Metric is", metric)
+
     def on_test_begin(self, logs=None):
-        self.loss = []
+        self.score = []
 
     def on_test_batch_end(self, batch, logs=None):
-        self.loss.append(logs["loss"])
+        if self.metric=="loss":
+            self.score.append(logs["loss"])
+        else:
+            self.score.append(max(1 - logs["accuracy"], 0.01))
 
 X_importance = np.array([1 for x in X])
 
@@ -71,21 +81,27 @@ def sample():
             y_tmp.append(y[i])
     return np.array(X_tmp), np.array(y_tmp)
 
-evalCallback = EvaluationCallback()
+#evalCallback = EvaluationCallback("accuracy")
+evalCallback = EvaluationCallback("loss")
 
 def calc_importance():
-    model.evaluate(X, y, batch_size=1, callbacks=[evalCallback], verbose=1)
-    importance = np.round(evalCallback.loss / np.min(evalCallback.loss)).astype(int)
-    print("Min: ", np.min(importance), "  Max: ", np.max(importance), "  Mean: ", np.mean(importance), "  Median: ", np.median(importance), "  Percentiles [25, 33, 50, 66, 75, 85, 90, 95]:", np.percentile(importance, [25, 33, 50, 66, 75, 85, 90, 95]))
-    print("Loss Min: ", np.min(evalCallback.loss), "  Loss Max: ", np.max(evalCallback.loss))
+    _, a = model.evaluate(X, y, batch_size=1, callbacks=[evalCallback], verbose=1)
+    if a == 1:
+        return None
+    importance = np.round(evalCallback.score / np.min(evalCallback.score)).astype(int)
+    print("Min:", np.min(importance), " Max:", np.max(importance), " Mean:", np.mean(importance), " Median:", np.median(importance), " Percentiles [25, 33, 50, 66, 75, 85, 90, 95]:", np.percentile(importance, [25, 33, 50, 66, 75, 85, 90, 95]))
+    print("Score Min:", np.min(evalCallback.score), " Score Max:", np.max(evalCallback.score))
     return importance
 
-X_sampled, y_sampled = sample()
+start = datetime.datetime.now()
 for i in range(n_iterations):
-    print("Iteration: ",i, X_sampled.shape, y_sampled.shape)
+    X_sampled, y_sampled = sample()
+    print("Iteration", (i+1), "is training on", X_sampled.shape[0], "samples")
     stat = model.fit(X_sampled, y_sampled, batch_size=64, epochs=n_epochs, shuffle=True, verbose=1)
     X_importance = calc_importance()
-    X_sampled, y_sampled = sample()
+    if X_importance is None:
+        break
+end = datetime.datetime.now()
 
 X = np.unique(X, axis=0)
 y_hat = model.predict(X)
@@ -94,3 +110,6 @@ for sample in range(X.shape[0]):
     chars = [int_to_char[round(v)] for v in x]
     index = np.argmax(y_hat[sample])
     print(chars, "=>", int_to_char[index])
+
+print("===> Iterations:", (i+1), "Total epochs:", ((i+1) * n_epochs))
+print("===> Total training time:", (end-start))
