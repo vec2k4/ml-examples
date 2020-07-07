@@ -1,0 +1,5 @@
+{
+    "python.pythonPath": "/home/rkruse/.local/share/virtualenvs/ml-examples-Tkfyn2PG/bin/python",
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true
+}
