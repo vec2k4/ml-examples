@@ -6,3 +6,11 @@
     * [The Basics](https://medium.com/@yashpatel_86510/reinforcement-learning-w-keras-openai-698add10b4eb "Part 1")
     * [DQNs](https://towardsdatascience.com/reinforcement-learning-w-keras-openai-dqns-1eed3a5338c "Part 2")
     * [Actor-Critic Models](https://towardsdatascience.com/reinforcement-learning-w-keras-openai-actor-critic-models-f084612cfd69 "Part 3")
+
+## General
+* [Papers with code](https://paperswithcode.com/)
+* Reddit
+    * [Machine learning](https://www.reddit.com/r/MachineLearning/)
+    * [Reinforcement learning](https://www.reddit.com/r/reinforcementlearning/)
+    * [Machine learning questions](https://www.reddit.com/r/MLQuestions/)
+    * [Deep learning](https://www.reddit.com/r/deeplearning/)
